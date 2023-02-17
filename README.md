@@ -18,13 +18,13 @@ Indexa palavras de documentos de texto
 
 #  DESCRIÇÃO
 
-O programa **indexer** realiza uma contagem de palavras em documentos de
+O programa **indexer** realiza uma contagem de palavras em documentos de texto.
 
-texto. A partir dessa contagem, ele ainda permite uma busca pelo número de
+A partir dessa contagem, ele ainda permite uma busca pelo número deocorrências de 
 
-ocorrências de uma palavra específica em um documento, ou a seleção de
+uma palavra específica em um documento, ou a seleção de documentos relevantes 
 
-documentos relevantes para um dado termo de busca.
+para um dado termo de busca.
 
 O programa **indexer** transforma todas as letras para minúsculas e ignora
 

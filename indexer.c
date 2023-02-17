@@ -18,6 +18,7 @@ typedef struct hash_table {
 void freq_function(FILE *file, int n);
 void freq_word_function(FILE *file, char *word);
 void search_function(FILE *file, char *term);
+void process_word(char *word);
 void add_word(hash_table *ht, char *word);
 
 
@@ -99,12 +100,49 @@ void freq_function(FILE *file, int n) {
 void freq_word_function(FILE *file, char *word) {
     // Implementação da função de frequência de palavra com parâmetro word
 }
+//------------------------------------------------------------------------------------------------------------------//
 
 void search_function(FILE *file, char *term) {
     // Implementação da função de busca com parâmetro term
 }
+//------------------------------------------------------------------------------------------------------------------//
+
+void process_word(char *word) {
+
+    // verifica se a palavra tem mais de 1 caractere
+    if (strlen(word) < 2) {
+        return;
+    }
+
+    // converte todos os caracteres para minúsculo
+    for (int i = 0; word[i]; i++) {
+        word[i] = tolower(word[i]);
+    }
+
+    // remove caracteres que não são letras
+    int i = 0, j = 0;
+    while (word[i]) {
+            // função isalpha() checa se um caractere está presente no alfabeto (a - z e A - Z) ou não. Retorna "0" se o caractere não estiver no alfabeto.
+        if (isalpha(word[i])) {
+            word[j] = word[i];
+            j++;
+        }
+        i++;
+    }
+    word[j] = '\0';
+}
+//------------------------------------------------------------------------------------------------------------------//
 
 void add_word(hash_table *ht, char *word) {
+
+    // processa a palavra
+    process_word(word);
+
+    // verifica se a palavra foi processada para uma string vazia
+    if (strlen(word) <= 2) {
+        return;
+    }
+
     // procura pela palavra na tabela hash
     int index = -1;
     for (int i = 0; i < ht->num_words; i++) {
