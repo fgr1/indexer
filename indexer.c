@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <ctype.h>
 
 #define MAX_WORD_LEN 50
 #define MAX_NUM_WORDS 100000
@@ -8,6 +10,7 @@
 typedef struct word_count {
     char word[MAX_WORD_LEN];
     int count;
+    struct word_count *next;
 } word_count;
 
 typedef struct hash_table {
@@ -17,31 +20,45 @@ typedef struct hash_table {
 
 void freq_function(FILE *file, int n);
 void freq_word_function(FILE *file, char *word);
-void search_function(FILE *file, char *term);
+void search_function(FILE *file, char **search_term, int num_search_terms);
 void process_word(char *word);
 void add_word(hash_table *ht, char *word);
 
 
 int main(int argc, char *argv[]) {
-    if (argc != 4) {
+    if (argc < 4) {
         printf("Modo de uso: ./program <funcao> <complemento> <arquivo1> [<arquivo2> ...]\n");
         return 1;
     }
-//------------------------------------------Recebe argumentos da main-----------------------------------------------//
 
     char *function = argv[1];
     char *complement = argv[2];
-
-    int freq_n;
-    char *freq_word;
-    char *search_term;
+    char **search_term = NULL;
+    int num_search_terms = 0;
+    int freq_n = 0;
+    char *freq_word = NULL;
 
     if (strcmp(function, "--freq") == 0) {
         freq_n = atoi(complement);
     } else if (strcmp(function, "--freq-word") == 0) {
         freq_word = complement;
     } else if (strcmp(function, "--search") == 0) {
-        search_term = complement;
+        int search_term_size = 1;
+        search_term = malloc(sizeof(char *) * search_term_size);
+
+        for (int i = 3; i < argc; i++) {
+            if (access(argv[i], F_OK) != -1) {
+                break;
+            } else {
+                search_term[num_search_terms] = strdup(argv[i]);
+                num_search_terms++;
+
+                if (num_search_terms >= search_term_size) {
+                    search_term_size *= 2;
+                    search_term = realloc(search_term, sizeof(char *) * search_term_size);
+                }
+            }
+        }
     } else {
         printf("Erro: funcao invalida '%s'\n", function);
         return 1;
@@ -50,25 +67,27 @@ int main(int argc, char *argv[]) {
     for (int i = 3; i < argc; i++) {
         char *filename = argv[i];
         FILE *file = fopen(filename, "r");
+
         if (!file) {
             printf("Erro: nao foi possivel abrir o arquivo: '%s'\n", filename);
             continue;
         }
-//------------------------------------------------------------------------------------------------------------------//
 
         if (strcmp(function, "--freq") == 0) {
-            printf("Frequencia das %d palavras mais comuns em %s:\n", freq_n, argv[i]);
+            printf("Frequencia das %d palavras mais comuns em %s:\n", freq_n, filename);
             freq_function(file, freq_n);
         } else if (strcmp(function, "--freq-word") == 0) {
-            printf("Frequencia da palavra \"%s\" em %s:\n", freq_word, argv[i]);
+            printf("Frequencia da palavra \"%s\" em %s:\n", freq_word, filename);
             freq_word_function(file, freq_word);
         } else if (strcmp(function, "--search") == 0) {
-            printf("O termo \"%s\" aparece nas seguintes linhas de %s:\n", search_term, argv[i]);
-            search_function(file, search_term);
+            printf("O termo \"%s\" aparece nas seguintes linhas de %s:\n", search_term[0], filename);
+            search_function(file, search_term, num_search_terms);
         }
 
         fclose(file);
     }
+
+    free(search_term);
 
     return 0;
 }
@@ -79,13 +98,14 @@ void freq_function(FILE *file, int n) {
     hash_table ht;
     ht.num_words = 0;
 
-    // lê cada palavra do arquivo e adiciona à tabela hash
+    // lÃª cada palavra do arquivo e adiciona Ã  tabela hash
     char word[MAX_WORD_LEN];
     while (fscanf(file, "%s", word) != EOF) {
+        process_word(word); // processa a palavra antes de adicionÃ¡-la
         add_word(&ht, word);
     }
 
-    // ordena a tabela hash em ordem decrescente de ocorrência
+    // ordena a tabela hash em ordem decrescente de ocorrÃªncia
     for (int i = 0; i < ht.num_words - 1; i++) {
         for (int j = i + 1; j < ht.num_words; j++) {
             if (ht.table[i]->count < ht.table[j]->count) {
@@ -95,15 +115,65 @@ void freq_function(FILE *file, int n) {
             }
         }
     }
-}
+    // imprime as n palavras mais comuns
+    for (int i = 0; i < n && i < ht.num_words; i++) {
+        printf("%d - %s: %d\n", i+1, ht.table[i]->word, ht.table[i]->count);
+    }
 
-void freq_word_function(FILE *file, char *word) {
-    // Implementação da função de frequência de palavra com parâmetro word
+    // libera a memÃ³ria alocada para a tabela hash
+    for (int i = 0; i < ht.num_words; i++) {
+        free(ht.table[i]);
+    }
 }
 //------------------------------------------------------------------------------------------------------------------//
 
-void search_function(FILE *file, char *term) {
-    // Implementação da função de busca com parâmetro term
+void freq_word_function(FILE *file, char *word) {
+
+    hash_table ht;
+    ht.num_words = 0;
+
+    // converte a palavra passa pelo usuÃ¡rio em lowercase
+    int word_len = strlen(word);
+    char lowercase_word[word_len + 1];
+    for (int i = 0; i < word_len; i++) {
+        lowercase_word[i] = tolower(word[i]);
+    }
+    lowercase_word[word_len] = '\0';
+
+    // lÃª cada palavra do arquivo e adiciona Ã  tabela hash
+    char curr_word[MAX_WORD_LEN];
+    while (fscanf(file, "%s", curr_word) != EOF) {
+        process_word(curr_word); // process the word before adding it
+
+        // convert the current word to lowercase
+        int curr_word_len = strlen(curr_word);
+        char lowercase_curr_word[curr_word_len + 1];
+        for (int i = 0; i < curr_word_len; i++) {
+            lowercase_curr_word[i] = tolower(curr_word[i]);
+        }
+        lowercase_curr_word[curr_word_len] = '\0';
+
+        if (strcmp(lowercase_curr_word, lowercase_word) == 0) {
+            add_word(&ht, curr_word);
+        }
+    }
+
+    // print the frequency of the word
+    if (ht.num_words > 0) {
+        printf("A palavra \"%s\" aparece %d vezes no arquivo.\n", word, ht.table[0]->count);
+    } else {
+        printf("A palavra \"%s\" nao aparece no arquivo.\n", word);
+    }
+
+    // free the memory allocated for the hash table
+    for (int i = 0; i < ht.num_words; i++) {
+        free(ht.table[i]);
+    }
+}
+//------------------------------------------------------------------------------------------------------------------//
+
+void search_function(FILE *file, char **search_term, int num_search_terms) {
+    // ImplementaÃ§Ã£o da funÃ§Ã£o de busca com parÃ¢metro term
 }
 //------------------------------------------------------------------------------------------------------------------//
 
@@ -114,15 +184,15 @@ void process_word(char *word) {
         return;
     }
 
-    // converte todos os caracteres para minúsculo
+    // converte todos os caracteres para minÃºsculo
     for (int i = 0; word[i]; i++) {
         word[i] = tolower(word[i]);
     }
 
-    // remove caracteres que não são letras
+    // remove caracteres que nÃ£o sÃ£o letras
     int i = 0, j = 0;
     while (word[i]) {
-            // função isalpha() checa se um caractere está presente no alfabeto (a - z e A - Z) ou não. Retorna "0" se o caractere não estiver no alfabeto.
+            // funÃ§Ã£o isalpha() checa se um caractere estÃ¡ presente no alfabeto (a - z e A - Z) ou nÃ£o. Retorna "0" se o caractere nÃ£o estiver no alfabeto.
         if (isalpha(word[i])) {
             word[j] = word[i];
             j++;
@@ -152,11 +222,11 @@ void add_word(hash_table *ht, char *word) {
         }
     }
 
-    // se a palavra já existe na tabela, incrementa a contagem
+    // se a palavra jÃ¡ existe na tabela, incrementa a contagem
     if (index >= 0) {
         ht->table[index]->count++;
     }
-    // caso contrário, adiciona a palavra à tabela
+    // caso contrÃ¡rio, adiciona a palavra Ã  tabela
     else {
         word_count *wc = malloc(sizeof(word_count));
         strncpy(wc->word, word, MAX_WORD_LEN);
