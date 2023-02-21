@@ -1,14 +1,19 @@
-CC = gcc
-CFLAGS = -Wall -Werror -std=c99
+OBJS	= indexer.o HashTable.o
+SOURCE	= indexer.c HashTable.c
+HEADER	= HashTable.h
+OUT	= indexer
+CC	 = gcc
+FLAGS	 = -g -c -Wall
+LFLAGS	 = -lm
 
-indexer: indexer.o HashTable.o
-	$(CC) $(CFLAGS) -o $@ $^
+all: $(OBJS)
+	$(CC) -g $(OBJS) -o $(OUT) $(LFLAGS) 
 
-indexer.o: indexer.c HashTable.h
-	$(CC) $(CFLAGS) -c $<
+main.o: main.c
+	$(CC) $(FLAGS) indexer.c 
 
-HashTable.o: HashTable.c HashTable.h
-	$(CC) $(CFLAGS) -c $<
+theTrie.o: theTrie.c
+	$(CC) $(FLAGS) HashTable.c
 
 clean:
-	rm -f indexer *.o
+	rm -f $(OBJS) $(OUT)

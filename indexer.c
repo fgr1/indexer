@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    HashTable *ht = create_table();
+    HashTable *ht = createHashTable();
 
     for (int i = 3; i < argc; i++) {
         char *filename = argv[i];
@@ -82,6 +82,7 @@ int main(int argc, char *argv[]) {
     }
 
     free(search_term);
+    free(ht);
 
     return 0;
 }
@@ -124,7 +125,7 @@ void freq_n_function(int n, HashTable* table) {
 
     // Imprime as "n" palavras com o maior valor de ocorrência em ordem decrescente
     for (int i = 0; i < n && i < count; i++) {
-        printf("%d: %s - %d ocorrências\n", i+1, nodesArray[i]->key, nodesArray[i]->value);
+        printf("%d: %s - %d\n", i+1, nodesArray[i]->key, nodesArray[i]->value);
     }
 
     free(nodesArray);
@@ -134,7 +135,7 @@ void freq_n_function(int n, HashTable* table) {
 void freq_word_function(char* word, HashTable* table) {
     int count = get(table, word);
     if (count == -1) {
-        printf("A palavra '%s' não foi encontrada na tabela.\n", word);
+        printf("A palavra '%s' nao foi encontrada na tabela.\n", word);
     } else {
         printf("A palavra '%s' apareceu %d vezes na tabela.\n", word, count);
     }
